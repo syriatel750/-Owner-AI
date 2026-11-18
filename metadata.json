@@ -1,0 +1,6 @@
+{
+  "name": "OWNER AI | الاستخبارات الاقتصادية ومراجعة الأعمال",
+  "description": "منصة تنفيذية لمتابعة الربحية، هامش المساهمة، رأس المال العامل، والمحاكاة الاقتصادية لمجموعة روافد العراق.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
