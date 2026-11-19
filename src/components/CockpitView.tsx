@@ -28,6 +28,7 @@ import {
 } from './Charts';
 import { KpiMetricCard, SurfaceCard, StatusNotice, StateLabel } from './UiPrimitives';
 import { ForecastSection } from './ForecastSection';
+import { FinancialPerformanceDashboard } from './FinancialPerformanceDashboard';
 import { AnnualSummarySection } from './AnnualSummarySection';
 import { CumulativeProfitGrowthSection } from './CumulativeProfitGrowthSection';
 import { FinancialSustainabilitySection } from './FinancialSustainabilitySection';
@@ -502,6 +503,8 @@ export function CockpitView({
               badgeText={pct(planTotals.qty ? (100 * periodTotals.qty) / planTotals.qty : 0)}
             />
           </div>
+
+          <FinancialPerformanceDashboard selectedPeriod={period} />
 
           <LiquidityAlertStrip
             analysis={liquidityAnalysis}
