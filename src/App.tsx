@@ -37,6 +37,13 @@ const NAV_ITEMS: Array<{ id: NavView; label: string; shortLabel: string; icon: R
   { id: 'ask', label: 'اسأل وقيّم', shortLabel: 'اسأل وقيّم', icon: MessageSquareText },
 ];
 
+// Task-oriented navigation; existing views and routes are retained.
+const NAV_GROUPS: Array<{ id: string; label: string; items: NavView[] }> = [
+  { id: 'vision', label: 'الرؤية التنفيذية', items: ['cockpit', 'review'] },
+  { id: 'analysis', label: 'التحليل والسيناريوهات', items: ['twin', 'ask'] },
+  { id: 'control', label: 'القرارات والرقابة', items: ['cases'] },
+];
+
 const VIEW_TITLES: Record<NavView, string> = {
   cockpit: 'مركز المالك · الاستخبارات الاقتصادية',
   review: 'المراجعة التنفيذية',
@@ -62,6 +69,7 @@ function loadJson<T>(key: string, fallback: T): T {
 
 export default function App() {
   const [activeNav, setActiveNav] = useState<NavView>('cockpit');
+  const activeGroupId = NAV_GROUPS.find((g) => g.items.includes(activeNav))?.id ?? 'vision';
   const [twinTab, setTwinTab] = useState<TwinTabId>('model');
 
   const [cases, setCases] = useState<CaseItem[]>(() => loadJson(STORAGE_KEYS.cases, OWNER_DATA.initialCases));
@@ -233,26 +241,28 @@ export default function App() {
           <div className="mt-0.5 text-[11px] text-slate-400">{OWNER_DATA.meta.sector}</div>
         </div>
 
-        <nav className="flex-1 space-y-1" aria-label="التنقل الرئيسي">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const active = activeNav === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => navigate(item.id)}
-                className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-right text-xs font-semibold transition-colors ${
-                  active
-                    ? 'bg-[#0F766E] text-white'
-                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span className="truncate">{item.label}</span>
-              </button>
-            );
-          })}
+        <nav className="flex-1 space-y-5 overflow-y-auto" aria-label="التنقل الرئيسي">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.id} className="space-y-1">
+              <div className="px-3.5 pb-1 text-[10px] font-bold tracking-wide text-slate-400">{group.label}</div>
+              {group.items.map((id) => {
+                const item = NAV_ITEMS.find((n) => n.id === id);
+                if (!item) return null;
+                const Icon = item.icon;
+                const active = activeNav === item.id;
+                return (
+                  <button key={item.id} type="button" onClick={() => navigate(item.id)}
+                    aria-current={active ? 'page' : undefined}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-right text-xs font-semibold transition-colors ${
+                      active ? 'bg-[#0F766E] text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    }`}>
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="mt-auto border-t border-white/10 pt-4 space-y-1 text-xs">
@@ -299,18 +309,26 @@ export default function App() {
             </button>
           </div>
         </div>
-        <nav className="flex items-center gap-1 overflow-x-auto pb-0.5">
-          {NAV_ITEMS.map((item) => {
+        <div className="flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="مجموعات التنقل">
+          {NAV_GROUPS.map((group) => (
+            <button key={group.id} type="button" role="tab" aria-selected={activeGroupId === group.id}
+              onClick={() => navigate(group.items[0])}
+              className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold ${
+                activeGroupId === group.id ? 'bg-teal-700 text-white' : 'text-slate-300 hover:bg-white/10'
+              }`}>
+              {group.label}
+            </button>
+          ))}
+        </div>
+        <nav className="flex items-center gap-1 overflow-x-auto pb-0.5" aria-label="صفحات المجموعة">
+          {NAV_ITEMS.filter((item) => NAV_GROUPS.find((g) => g.id === activeGroupId)?.items.includes(item.id)).map((item) => {
             const active = activeNav === item.id;
             return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => navigate(item.id)}
+              <button key={item.id} type="button" onClick={() => navigate(item.id)}
+                aria-current={active ? 'page' : undefined}
                 className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold whitespace-nowrap ${
                   active ? 'bg-[#0F766E] text-white' : 'text-slate-300 hover:bg-white/10'
-                }`}
-              >
+                }`}>
                 {item.shortLabel}
               </button>
             );
