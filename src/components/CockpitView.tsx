@@ -45,18 +45,29 @@ import { exportCockpitToExcel } from '../utils/exportReports';
 import { LiquiditySettings, analyzeWorkingCapitalAndLiquidity } from '../utils/liquidityAlerts';
 import { InAppLiquidityToasts, LiquidityAlertFullPanel, LiquidityAlertStrip } from './LiquidityAlertCenter';
 
-type CockpitTab = 'brief' | 'godview' | 'margin' | 'sensitivity' | 'capital' | 'channels' | 'suppliers' | 'lab' | 'governance';
+type CockpitTab = 'brief' | 'godview' | 'forecast' | 'margin' | 'sensitivity' | 'capital' | 'liquidity' | 'investment' | 'channels' | 'suppliers' | 'lab' | 'governance';
 
 const TABS: Array<{ id: CockpitTab; label: string }> = [
   { id: 'brief', label: 'نبض المالك' },
   { id: 'godview', label: 'تحليل المناطق' },
+  { id: 'forecast', label: 'التوقعات والنمو' },
   { id: 'margin', label: 'تشريح الربحية' },
   { id: 'sensitivity', label: 'تحليل الحساسية' },
   { id: 'capital', label: 'درع رأس المال' },
+  { id: 'liquidity', label: 'الدورة النقدية والسيولة' },
+  { id: 'investment', label: 'الاستثمار وكفاءة الأصول' },
   { id: 'channels', label: 'القنوات التجارية' },
   { id: 'suppliers', label: 'تحليل الموردين' },
   { id: 'lab', label: 'مختبر القرارات' },
   { id: 'governance', label: 'الحوكمة والضوابط' },
+];
+
+// Existing financial views are redistributed without changing their calculations.
+const COCKPIT_GROUPS: Array<{ id: string; label: string; hint: string; tabs: CockpitTab[] }> = [
+  { id: 'vision', label: 'الرؤية الشاملة', hint: 'النبض والمناطق والتوقعات', tabs: ['brief', 'godview', 'forecast'] },
+  { id: 'economics', label: 'الربحية والتجارة', hint: 'SKU والتكاليف والقنوات والموردون', tabs: ['margin', 'sensitivity', 'channels', 'suppliers'] },
+  { id: 'capital', label: 'الاستثمار والسيولة', hint: 'رأس المال والفرص والأصول ودورة النقد', tabs: ['capital', 'liquidity', 'investment'] },
+  { id: 'decisions', label: 'القرارات والحوكمة', hint: 'المحاكاة والضوابط', tabs: ['lab', 'governance'] },
 ];
 
 export function CockpitView({
@@ -73,6 +84,7 @@ export function CockpitView({
   onOpenSettings: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<CockpitTab>('brief');
+  const currentGroup = COCKPIT_GROUPS.find((g) => g.tabs.includes(activeTab)) ?? COCKPIT_GROUPS[0];
   const [period, setPeriod] = useState<string>(OWNER_DATA.latestPeriod);
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
   const [godviewMetric, setGodviewMetric] = useState<'revenue' | 'gp' | 'margin' | 'quantity'>('revenue');
@@ -356,8 +368,22 @@ export function CockpitView({
 
       {/* Sub-navigation Tabs + Period Control + Export */}
       <div className="no-print flex flex-col gap-4 border-b border-slate-200 pb-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="أقسام مركز المالك">
-          {TABS.map((t) => {
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label="المجموعات التحليلية">
+            {COCKPIT_GROUPS.map((group) => (
+              <button key={group.id} type="button" role="tab" aria-selected={currentGroup.id === group.id}
+                onClick={() => setActiveTab(group.tabs[0])}
+                className={`rounded-xl border px-4 py-2 text-xs font-bold transition-colors ${
+                  currentGroup.id === group.id
+                    ? 'border-[#0F766E] bg-[#0F766E] text-white'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-teal-200 hover:text-teal-800'
+                }`}>
+                {group.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-1.5 border-r-2 border-teal-600 pr-3" role="tablist" aria-label="صفحات المجموعة المختارة">
+            {TABS.filter((t) => currentGroup.tabs.includes(t.id)).map((t) => {
             const active = activeTab === t.id;
             return (
               <button
@@ -377,7 +403,9 @@ export function CockpitView({
                   : t.label}
               </button>
             );
-          })}
+            })}
+          </div>
+          <p className="text-[11px] text-slate-500">{currentGroup.hint} · اختر صفحة واحدة لعرض تحليلاتها دون ازدحام</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 shrink-0">
@@ -541,32 +569,6 @@ export function CockpitView({
             </SurfaceCard>
           </div>
 
-          <AnnualSummarySection />
-
-          <CumulativeProfitGrowthSection />
-
-          <ForecastSection />
-
-          <FinancialSustainabilitySection />
-
-          <OpportunityProfitabilityMatrixSection />
-
-          <AssetEfficiencySection period={period} />
-
-          <MarketTrendsRadarSection />
-
-          <QuickRoiCalculatorSection period={period} />
-
-          <CashConversionCycleSection period={period} />
-
-          <ExpectedLiquidityCurveSection
-            period={period}
-            periodTotals={periodTotals}
-            liquidityAnalysis={liquidityAnalysis}
-            liquiditySettings={liquiditySettings}
-            onNavigateCapital={() => setActiveTab('capital')}
-          />
-
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <SurfaceCard title="القراءة الاقتصادية للفترة">
               <p className="text-xs leading-relaxed text-slate-600">
@@ -603,6 +605,38 @@ export function CockpitView({
               </div>
             </SurfaceCard>
           </div>
+        </div>
+      )}
+
+      {/* Grouped analytics: retain existing components and their financial logic. */}
+      {activeTab === 'forecast' && (
+        <div className="space-y-6">
+          <AnnualSummarySection />
+          <CumulativeProfitGrowthSection />
+          <ForecastSection />
+          <FinancialSustainabilitySection />
+        </div>
+      )}
+
+      {activeTab === 'investment' && (
+        <div className="space-y-6">
+          <OpportunityProfitabilityMatrixSection />
+          <AssetEfficiencySection period={period} />
+          <MarketTrendsRadarSection />
+          <QuickRoiCalculatorSection period={period} />
+        </div>
+      )}
+
+      {activeTab === 'liquidity' && (
+        <div className="space-y-6">
+          <CashConversionCycleSection period={period} />
+          <ExpectedLiquidityCurveSection
+            period={period}
+            periodTotals={periodTotals}
+            liquidityAnalysis={liquidityAnalysis}
+            liquiditySettings={liquiditySettings}
+            onNavigateCapital={() => setActiveTab('capital')}
+          />
         </div>
       )}
 
